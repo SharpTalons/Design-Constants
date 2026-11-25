@@ -6,12 +6,19 @@ import java.net.URL
 
 /** Downloads over HTTPS only. Used for app updates (and any other file the app fetches). */
 object Net {
+    /** Thrown when [download]'s `cancelled` says stop; the partial file is already deleted. */
+    class Cancelled : Exception()
+
     /**
      * Saves [url] to [dest], following at most 5 redirects, each HTTPS (GitHub sends downloads
      * to its file server). Stops past [maxBytes]. [progress] gets 0..1. Blocking. Throws
      * IllegalStateException with a message for the person using the app; [dest] is deleted on failure.
+     * [cancelled] is asked between chunks; when it says true the download stops with [Cancelled].
      */
-    fun download(url: String, dest: File, maxBytes: Long, expectBytes: Long, what: String, progress: (Float) -> Unit) {
+    fun download(
+        url: String, dest: File, maxBytes: Long, expectBytes: Long, what: String,
+        cancelled: () -> Boolean = { false }, progress: (Float) -> Unit,
+    ) {
         try {
             var u = URL(url)
             if (u.protocol != "https") throw IllegalStateException("The $what download didn't start.")
@@ -41,6 +48,7 @@ object Net {
                     val buf = ByteArray(64 * 1024)
                     var got = 0L
                     while (true) {
+                        if (cancelled()) throw Cancelled()
                         val n = input.read(buf)
                         if (n < 0) break
                         got += n
@@ -51,6 +59,9 @@ object Net {
                 }
             }
             c.disconnect()
+        } catch (e: Cancelled) {
+            dest.delete()
+            throw e
         } catch (e: IllegalStateException) {
             dest.delete()
             throw e

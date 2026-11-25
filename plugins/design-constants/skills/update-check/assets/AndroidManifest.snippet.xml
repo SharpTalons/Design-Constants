@@ -6,6 +6,9 @@
     <!-- Handing the APK to Android's installer. The first time, Android asks the person to
          allow installs from this app. Not allowed for apps distributed through Google Play. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- "Ready to install" when a background download finishes while the app is away
+         (Android 13+ asks for it; without it the installer simply opens on return). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application>
         <!-- Shares cache/update/ (see res/xml/file_paths.xml) with the installer, one grant at a time. -->

@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -31,29 +32,35 @@ import com.example.app.Updates
  *     if (vm.updatePrompt && upd != null && !firstRunFlowShowing) UpdateDialog(vm, upd)
  *
  * Update downloads and opens Android's installer; Ignore stops asking for this version
- * (Settings still offers it); Back asks again next start. While downloading it can't be
- * dismissed and shows a percentage.
+ * (Settings still offers it); Back asks again next start. While downloading it shows a
+ * percentage and a bar, and its buttons become Background (close the dialog, keep
+ * downloading) and Cancel (stop and delete it). Back while downloading means Background.
  */
 @Composable
 fun UpdateDialog(vm: AppViewModel, u: Updates.Release) {
     val prog = vm.updateProgress
     AlertDialog(
-        onDismissRequest = { if (prog == null) vm.updatePrompt = false },
+        onDismissRequest = { if (prog == null) vm.updatePrompt = false else vm.updateInBackground() },
         title = { Text("${Updates.APP} ${u.version} is available") },
         text = {
-            Text(
-                if (prog != null) "Downloading… ${(prog * 100).toInt()}%. Android will then ask you to install it."
-                else "You have $CURRENT_VERSION. Update downloads the new version" +
-                    (if (u.apkBytes > 0) " (${(u.apkBytes + 500_000) / 1_000_000} MB)" else "") +
-                    // TODO: name the app's own data, in its own words (DrumTrig: "instruments, samples, EQs and settings").
-                    " and Android asks you to install it. Your settings are kept.",
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    if (prog != null) "Downloading… ${(prog * 100).toInt()}%. Android will then ask you to install it."
+                    else "You have $CURRENT_VERSION. Update downloads the new version" +
+                        (if (u.apkBytes > 0) " (${(u.apkBytes + 500_000) / 1_000_000} MB)" else "") +
+                        // TODO: name the app's own data, in its own words (DrumTrig: "instruments, samples, EQs and settings").
+                        " and Android asks you to install it. Your settings are kept.",
+                )
+                if (prog != null) LinearProgressIndicator(progress = { prog }, modifier = Modifier.fillMaxWidth())
+            }
         },
         confirmButton = {
-            TextButton(onClick = { vm.installUpdate() }, enabled = prog == null) { Text("Update", fontWeight = FontWeight.Bold) }
+            if (prog != null) TextButton(onClick = { vm.updateInBackground() }) { Text("Background", fontWeight = FontWeight.Bold) }
+            else TextButton(onClick = { vm.installUpdate() }) { Text("Update", fontWeight = FontWeight.Bold) }
         },
         dismissButton = {
-            TextButton(onClick = { vm.ignoreUpdate() }, enabled = prog == null) { Text("Ignore") }
+            if (prog != null) TextButton(onClick = { vm.cancelUpdate() }) { Text("Cancel") }
+            else TextButton(onClick = { vm.ignoreUpdate() }) { Text("Ignore") }
         },
     )
 }
@@ -79,7 +86,7 @@ fun UpdateRow(vm: AppViewModel) {
             )
         }
         when {
-            prog != null -> OutlinedButton(onClick = {}, enabled = false) { Text("Downloading") }
+            prog != null -> OutlinedButton(onClick = { vm.cancelUpdate() }) { Text("Cancel") }
             u != null -> Button(onClick = { vm.installUpdate() }) { Text("Update to ${u.version}") }
             else -> OutlinedButton(onClick = { vm.checkForUpdates(manual = true) }, enabled = !vm.updateChecking) {
                 Text(if (vm.updateChecking) "Checking…" else "Check for updates")

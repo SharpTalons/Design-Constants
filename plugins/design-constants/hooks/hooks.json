@@ -1,0 +1,12 @@
+{
+  "description": "At the start of each session, says when a skill this project was built from has a newer version (reads the project's .design-constants file).",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          { "type": "command", "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/check-skill-versions.sh\"", "timeout": 15 }
+        ]
+      }
+    ]
+  }
+}

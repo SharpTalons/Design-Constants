@@ -120,3 +120,12 @@ the version-check script in full.
 | `references/writing-entries.md` | Writing a changelog entry for a release. Stands alone. |
 | `references/release-discipline.md` | Bumping a version, or wiring up the build-time check. |
 | `assets/` | Copy-ready React + Vite implementations of all five files. |
+
+## Record what you built
+
+When this feature is built, or brought up to a newer version, add or change one line in
+`.design-constants` at the project's root: `changelog <version>`. Take the version from
+`skill-versions.txt`, which sits next to this plugin's `skills/` folder
+(`plugins/design-constants/skill-versions.txt` in Design-Constants). That line is how
+the project is told about later versions: a check at the start of each session compares it
+with the newest one.

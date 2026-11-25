@@ -40,8 +40,9 @@ Read the target app first and answer these, because they change what you write:
 2. `Updates.kt`: ask `releases/latest`, read the tag and the APK asset, compare versions.
 3. The check in the view model: on every open, plus a manual check.
 4. `UpdateDialog`: offers the update once per start, with Update and Ignore.
-5. The download: HTTPS only, size-capped, with progress. Then the system installer through
-   a FileProvider.
+5. The download: HTTPS only, size-capped, with progress, and cancellable. Then the system
+   installer through a FileProvider, or, if the person has left the app, a "ready to
+   install" notification and the installer on return.
 6. The Settings row: current version, last result, and "Check for updates" or "Update to X".
 
 Copy-ready Kotlin and Jetpack Compose files for all of these are in `assets/`, with a
@@ -73,7 +74,14 @@ permission screen is showing. It can wait for the next start.
 
 **Answer "will I lose anything?" in the dialog.** Name what is kept (settings, data) and
 the download size. Update and Ignore are the two buttons. Back closes it and it asks again
-next start. While downloading, the dialog cannot be dismissed and shows a percentage.
+next start. While downloading it shows a percentage and a bar, and the buttons become
+Background (keep downloading with the dialog closed; Back does the same) and Cancel (stop,
+delete it, change nothing).
+
+**The installer needs the app in front.** Android only opens its install screen over an
+app that is on screen. If the download finishes while the person is elsewhere, post a
+"ready to install" notification and open the installer as soon as the app comes back
+(the main activity reports `onStart`/`onStop` to the view model).
 
 **Download defensively.** HTTPS only, and check every redirect (GitHub redirects to its
 file server). Cap the size, delete the partial file on any failure, and give the person a
@@ -122,3 +130,12 @@ Compose, `HttpURLConnection`, `org.json`).
 | `assets/UpdateUi.kt` | The dialog and the Settings row (Compose). |
 | `assets/AndroidManifest.snippet.xml`, `assets/file_paths.xml` | The permission and the FileProvider. |
 | `assets/release.yml` | The GitHub Actions workflow that names, publishes and mirrors each release. |
+
+## Record what you built
+
+When this feature is built, or brought up to a newer version, add or change one line in
+`.design-constants` at the project's root: `update-check <version>`. Take the version from
+`skill-versions.txt`, which sits next to this plugin's `skills/` folder
+(`plugins/design-constants/skill-versions.txt` in Design-Constants). That line is how
+the project is told about later versions: a check at the start of each session compares it
+with the newest one.

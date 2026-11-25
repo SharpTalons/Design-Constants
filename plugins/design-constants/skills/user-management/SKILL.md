@@ -133,3 +133,12 @@ status chip carries a word so state never depends on colour alone.
 | `references/request-and-approve.md` | The app lets people sign themselves in and wait for approval, rather than having accounts created for them. The states, the transitions that are real decisions, notifying the administrators, marking the queue in the interface, and telling the person waiting. |
 | `../design-foundations/references/permissions.md` | Building the permission model. Start here. |
 | `../design-foundations/references/modal-accessibility.md` | Building the dialogs, the row menu or the permission editor. |
+
+## Record what you built
+
+When this feature is built, or brought up to a newer version, add or change one line in
+`.design-constants` at the project's root: `user-management <version>`. Take the version from
+`skill-versions.txt`, which sits next to this plugin's `skills/` folder
+(`plugins/design-constants/skill-versions.txt` in Design-Constants). That line is how
+the project is told about later versions: a check at the start of each session compares it
+with the newest one.
