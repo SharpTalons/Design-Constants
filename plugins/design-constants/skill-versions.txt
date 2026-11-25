@@ -1,0 +1,12 @@
+# The current version of each skill, and what its newest version changed.
+# One line per skill: <skill> <version> <what changed, in one sentence>
+# Raise a skill's version whenever its behaviour or its copy-ready code changes (semver:
+# PATCH for wording or a fix, MINOR for new behaviour, MAJOR when existing apps must change
+# how they use it). Projects record what they built in a .design-constants file; the
+# session-start check compares the two.
+changelog 1.0.0 First version.
+design-foundations 1.0.0 First version.
+floating-button 1.0.0 First version: the button over other apps, the keep-running service and notification, and the Settings switch.
+my-account 1.0.0 First version.
+update-check 1.1.0 Cancel and Background while downloading, a progress bar, and a "ready to install" notification when the download finishes while the app is away.
+user-management 1.0.0 First version.

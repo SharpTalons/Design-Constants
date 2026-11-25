@@ -128,7 +128,8 @@ automatic call (DrumTrig checks `Build.FINGERPRINT != "robolectric"`).
 
 **Observable state:** `update: Release?`, `updateStatus: String?` (null until the first
 check), `updateChecking: Boolean`, `updatePrompt: Boolean`, `updateProgress: Float?`
-(0..1 while downloading, else null).
+(0..1 while downloading, else null), `updateInBackground: Boolean` (downloading with the
+dialog closed).
 
 ## 6. The prompt: once per start, Ignore per version
 
@@ -137,8 +138,10 @@ check), `updateChecking: Boolean`, `updatePrompt: Boolean`, `updateProgress: Flo
 - **Show it** only while no first-run flow is on screen (onboarding, a tour, a permission
   screen). It stays pending and appears as soon as that closes. If the session ends
   first, the next start asks again.
-- **Update:** starts the download (§7). The dialog stays, shows a percentage, and its
-  buttons and dismissal are disabled until the download ends.
+- **Update:** starts the download (§7). The dialog stays and shows a percentage and a
+  progress bar. Its buttons become **Background** (close the dialog, keep downloading;
+  Back and tapping outside do the same) and **Cancel** (stop, delete what came, change
+  nothing: "Update cancelled. Nothing was changed.").
 - **Ignore:** store `updateIgnored = <version>` and close. Settings still offers the
   update.
 - **Back or tapping outside:** close for this start only. Nothing is stored.
@@ -151,7 +154,8 @@ version is never ignored automatically.
 
 `installUpdate()`:
 
-1. If a download is running, return. Set `updateProgress = 0`.
+1. If a download is running, return. Set `updateProgress = 0`. Keep the download's job,
+   so Cancel can stop it.
 2. Clear and recreate `cacheDir/update/`. Download to `update/<App>-<version>.apk` with
    `Net.download`:
    - HTTPS only, for the first URL and every redirect. Follow at most five redirects by
@@ -159,15 +163,29 @@ version is never ignored automatically.
    - 15-second connect and 30-second read timeouts.
    - Stop and delete past a hard cap (DrumTrig: 200 MB).
    - Progress: bytes received over `Content-Length`, or over the asset's `size` when the
-     server omits it, clamped to 0..1.
+     server omits it, clamped to 0..1. Publish it only when the whole percent changes, so
+     the screen redraws about 100 times, not once per chunk.
+   - Cancellable: `download` asks a `cancelled()` callback between chunks (the job is no
+     longer active) and stops with `Net.Cancelled`, deleting the partial file.
    - On any failure, delete the partial file and throw a message the person can act on:
      "Couldn't download the update. Check your connection and try again."
-3. Get a content URI with `FileProvider.getUriForFile(ctx, "<applicationId>.files", apk)`.
-4. Start `ACTION_VIEW` with the MIME type `application/vnd.android.package-archive`,
-   `FLAG_GRANT_READ_URI_PERMISSION` and `FLAG_ACTIVITY_NEW_TASK`. Close the prompt.
+3. Close the prompt. **If the app is on screen** (its main activity is between `onStart`
+   and `onStop`; the activity calls `setOnScreen`), open the installer now. **If not**
+   (the person sent it to the Background and left), keep the file and post a notification,
+   "<App> X is ready to install / Tap to open <App> and install it. Your <data> are kept.",
+   on its own "Updates" channel. Android's installer can only open over the app while it
+   is in front, so it opens the moment the app comes back (`setOnScreen(true)`), which
+   also clears the notification. Without notification permission it still opens on return.
+4. Opening the installer: a content URI from `FileProvider.getUriForFile(ctx,
+   "<applicationId>.files", apk)`, then `ACTION_VIEW` with the MIME type
+   `application/vnd.android.package-archive`, `FLAG_GRANT_READ_URI_PERMISSION` and
+   `FLAG_ACTIVITY_NEW_TASK`.
 5. If the installer can't be opened: "Couldn't open Android's installer. Download the
    update from the release page instead."
-6. Always reset `updateProgress = null` at the end.
+6. Always reset `updateProgress = null` and `updateInBackground = false` at the end.
+
+**Background:** "Downloading in the background. Android will ask you to install it when
+it's done." The Settings row keeps showing the percentage and offers Cancel.
 
 **What Android does next:** the first time, it asks the person to allow installs from
 this app (Settings › Install unknown apps), then shows its own install screen. Because the
@@ -179,6 +197,7 @@ is normal.
 
 ```xml
 <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 <provider
     android:name="androidx.core.content.FileProvider"
     android:authorities="${applicationId}.files"
@@ -205,7 +224,7 @@ One row near the top of the About (or "About & help") page:
 | Up to date | same | "You have the newest version, Y." | Check for updates |
 | Offline | same | "Couldn't reach GitHub. Check your connection and try again." | Check for updates |
 | Update known | same, icon in the accent colour | "<App> X is available. You have Y." | Update to X |
-| Downloading | same | "Downloading X… 42%" | Downloading (disabled) |
+| Downloading | same | "Downloading X… 42%" | Cancel |
 
 Next to it, the changelog skill's "What's new" row. A plain "Release page" link to the
 public releases page is a useful fallback.
@@ -218,7 +237,10 @@ Written for the people using the app, not for developers.
 - Dialog text: "You have Y. Update downloads the new version (12 MB) and Android asks you
   to install it. Your <the app's data, in its own words> are kept."
 - While downloading: "Downloading… 42%. Android will then ask you to install it."
-- Buttons: **Update** (confirm), **Ignore** (dismiss). Not "Later", not "Skip".
+- Buttons: **Update** (confirm), **Ignore** (dismiss). Not "Later", not "Skip". While
+  downloading: **Background** (confirm) and **Cancel** (dismiss).
+- Ready notification: "<App> X is ready to install" / "Tap to open <App> and install it.
+  Your <data> are kept."
 - Never say "APK" on screen; say "the new version".
 
 ## 10. Privacy and security
@@ -244,6 +266,11 @@ Written for the people using the app, not for developers.
 - [ ] Update shows a percentage, opens Android's installer, and the new version installs
       over the old one with all data kept.
 - [ ] A download cut off midway leaves no partial file and shows a sentence, not a crash.
+- [ ] Cancel mid-download stops it, deletes the partial file and says nothing changed.
+- [ ] Background closes the dialog and the download carries on; Settings shows the
+      percentage. Back while downloading does the same.
+- [ ] Background, then leave the app: when it finishes, a "ready to install" notification
+      appears; tapping it opens the app and then the installer.
 - [ ] A content-pack release published after the app release is not offered as an update.
 - [ ] `isNewer("0.10.0", "0.9.9")` is true; `isNewer("1.0.0", "1.0.0")` is false.
 - [ ] No token or secret in the APK (`unzip -p app.apk | strings | grep -i token` finds

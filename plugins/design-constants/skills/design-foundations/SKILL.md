@@ -40,3 +40,12 @@ independently, re-reading the user row rather than trusting a session token.
 for the permission model. The neutral scale in the CSS is
 specified exactly — the dark theme depends on those values — while everything non-neutral
 (accent, status colours) is left as placeholders for the app to fill in.
+
+## Record what you built
+
+When this feature is built, or brought up to a newer version, add or change one line in
+`.design-constants` at the project's root: `design-foundations <version>`. Take the version from
+`skill-versions.txt`, which sits next to this plugin's `skills/` folder
+(`plugins/design-constants/skill-versions.txt` in Design-Constants). That line is how
+the project is told about later versions: a check at the start of each session compares it
+with the newest one.
