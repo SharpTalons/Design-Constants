@@ -12,7 +12,7 @@ reinventing the feature from scratch with slightly different decisions than last
 From the repo you want to build the feature in:
 
 ```
-/plugin marketplace add fubulatu-lang/Design-Constants
+/plugin marketplace add SharpTalons/Design-Constants
 /plugin install design-constants
 ```
 

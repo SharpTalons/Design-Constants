@@ -1,8 +1,8 @@
 {
   "name": "design-constants",
   "owner": {
-    "name": "fubulatu-lang",
-    "url": "https://github.com/fubulatu-lang/Design-Constants"
+    "name": "SharpTalons",
+    "url": "https://github.com/SharpTalons/Design-Constants"
   },
   "metadata": {
     "description": "Feature specifications, packaged as skills, for building recurring app features the same way every time.",
@@ -14,7 +14,7 @@
       "source": "./plugins/design-constants",
       "description": "Build in-app changelog, update check, floating button, My Account and User Management features to a fixed specification, with a shared design-token, dialog-accessibility and permission foundation.",
       "version": "1.2.0",
-      "author": { "name": "fubulatu-lang" },
+      "author": { "name": "SharpTalons" },
       "keywords": ["changelog", "update-check", "floating-button", "android", "settings", "user-management", "design-system", "dark-mode", "permissions"]
     }
   ]
